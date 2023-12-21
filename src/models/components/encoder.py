@@ -7,7 +7,7 @@ class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
         # Initial Convolution Block
-        self.conv1 = nn.Conv2d(12, 32, kernel_size=3, stride=1, padding=1)
+        self.conv1 = nn.Conv2d(14, 32, kernel_size=3, stride=1, padding=1)
         self.bn1 = nn.BatchNorm2d(32)
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
         self.bn2 = nn.BatchNorm2d(64)

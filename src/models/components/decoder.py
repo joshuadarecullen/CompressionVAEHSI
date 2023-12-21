@@ -14,7 +14,7 @@ class Decoder(nn.Module):
         self.bn6 = nn.BatchNorm2d(64)
         self.conv7 = nn.ConvTranspose2d(64, 32, kernel_size=3, stride=1, padding=1)
         self.bn7 = nn.BatchNorm2d(32)
-        self.conv8 = nn.ConvTranspose2d(32, 12, kernel_size=3, stride=1, padding=1)
+        self.conv8 = nn.ConvTranspose2d(32, 14, kernel_size=3, stride=1, padding=1)
 
     def forward(self, z):
         z = self.fc(z)

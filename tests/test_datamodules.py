@@ -6,13 +6,13 @@ import torch
 import pyrootutils
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-from src.data.datamodule import BigEarthDataModule
+from src.data.bigearth_datamodule import BigEarthDataModule
 
 
 @pytest.mark.parametrize("batch_size", [32])
 def test_bigearth_datamodule(batch_size: int) -> None:
     """Tests `BigEarthDataModule` to verify that it can be downloaded correctly, that the necessary
-    attributes were created (e.g., the dataloader objects), and that dtypes and batch sizes
+    attributes were created (e.g., the dataloader objects), and that dtypes, batch sizes, and bands
     correctly match.
 
     :param batch_size: Batch size of the data to be loaded by the dataloader.
@@ -22,7 +22,8 @@ def test_bigearth_datamodule(batch_size: int) -> None:
     dm = BigEarthDataModule(
             dataset_dir=data_dir,
             train_val_test_split=(0.6, 0.2, 0.2),
-            batch_size=batch_size
+            batch_size=batch_size,
+            bands='all',
             )
     dm.prepare_data()
 
@@ -48,5 +49,6 @@ def test_bigearth_datamodule(batch_size: int) -> None:
     x, y = batch.values()
     assert len(x) == batch_size
     assert len(y) == batch_size
+    assert x.shape[1] == 14 # sentinal 1 and 2 bands total 14
     # assert x.dtype == torch.float32
     # assert y.dtype == torch.int64

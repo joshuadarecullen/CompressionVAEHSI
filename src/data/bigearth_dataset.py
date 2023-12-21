@@ -67,7 +67,6 @@ class BigEarthDataset(BigEarthNet):
         for directory in directories:
             exists.append(os.path.exists(os.path.join(self.root, directory)))
 
-        print(exists)
         if all(exists):
             return
 

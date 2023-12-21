@@ -37,7 +37,6 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
     def __init__(
         self,
         dataset_dir: str,
-        # dataset_name: str,
         batch_size: int,
         transforms: Optional[Callable[[Dict[str, Tensor]], Dict[str, Tensor]]] = None,
         train_val_test_split: Tuple[float, float, float] = (0.6, 0.2, 0.2),
@@ -77,7 +76,7 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
         data = BigEarthDataset(
                 root=self.dataset_dir,
                 bands=self.bands,
-                download=True
+                download=True,
                 )
 
 
