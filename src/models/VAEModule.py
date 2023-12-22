@@ -1,7 +1,8 @@
-from typing import Any, Dict, Union
+from typing import Any, Dict, Union, Optional
 
 import torch
-from torch import nn
+from torch import nn, Tensor
+from torch.optim import lr_scheduler, Optimizer
 
 import pytorch_lightning as pl
 from pytorch_lightning import LightningModule
@@ -19,12 +20,11 @@ class VAEModule(pl.LightningModule):
     def __init__(
             self,
             model: nn.Module,
-            optimizer: torch.optim.Optimizer=None,
-            scheduler: torch.optim.lr_scheduler=None,
-            kl_scheduler: torch.optim.lr_scheduler=None,
-            state_dict: dict=None,
-            frozen: bool=False,
-            train_sigma: bool=True,
+            optimizer: Optional[Optimizer]=None,
+            scheduler: Optional[lr_scheduler]=None,
+            kl_scheduler: Optional[lr_scheduler]=None,
+            state_dict: Optional[Dict]=None,
+            frozen: Optional[bool]=False,
             ) -> None:
 
         super().__init__()
@@ -34,7 +34,6 @@ class VAEModule(pl.LightningModule):
         self.save_hyperparameters()
 
         self.model = model
-        self.train_sigma = train_sigma
         self.kl_scheduler = kl_scheduler
         self.scheduler = scheduler
 
@@ -48,42 +47,16 @@ class VAEModule(pl.LightningModule):
                    param.requires_grad_(False)
 
 
-    def forward(self, x: torch.Tensor) -> Union[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(self, x: Tensor) -> Union[Tensor, Tensor, Tensor]:
         '''
             inference for the latent space
         '''
         return self.model.encode(x)
 
-    def model_step(self, x: TernarySample) -> Dict[str, torch.Tensor]:
+    def model_step(self, x: Tensor) -> Dict[str, Tensor]:
 
-        # x has shape [batch_size, 1, 60, 1, 96, 64]
-
-        x = x.squeeze(1) # [batch_size, 60, 1, 96, 64]
-
-        # Flatten each observation's frames into same dimensions
-        x_flat = x.view(-1, 1, x.size(3), x.size(4)) # [batch_size*60, 1, 96, 64]
-
-        # pass through the model outputs shape [batch_size*60, 128]
-        mean_flat, logvar_flat, z_flat, recon = self.model(x_flat)
-
-        # calculate each observations latent space (mean over frames) [batch_size, 128]
-        z = z_flat.view(x.size(0), -1, z_flat.size(1)).mean(axis=1)
-
-        # if training reconstruction sigma
-        if self.train_sigma:
-            # extract spectrograms and their variance, both [batch_size*60, 1, 96, 64]
-            recon_flat, x_logvar_flat = recon.chunk(2, dim=1)
-            # reshape to extract observations from frames [batch_size, 60, 1, 96, 64]
-            x_hat = recon_flat.view(x.shape)
-        else:
-            x_logvar_flat = torch.zeros_like(recon)
-            x_hat = recon.view(x.shape)
-
-        x_log_var = x_logvar_flat.view(x.shape)
-
-        # reshape mean and log var of the latent space [batch_size, 60, 128]
-        mean = mean_flat.view(x.size(0), -1, mean_flat.size(1))
-        logvar = logvar_flat.view(x.size(0), -1, logvar_flat.size(1))
+        # pass through the model outputs shape [batch_size,14,120,120]
+        mu, logvar, z, recon = self.model(x_flat)
 
         if self.kl_scheduler:
             # Compute beta for cyclic annealing
@@ -110,22 +83,22 @@ class VAEModule(pl.LightningModule):
 
 
     def training_step(self,
-            batch: TernarySample,
-            batch_idx: int) -> Dict[str, torch.Tensor]:
+                      batch: Dict[str, Tensor]
+            batch_idx: int) -> Dict[str, Tensor]:
 
         x, y, s = batch
 
         outputs = self.model_step(x)
-
 
         return {**outputs,
                 'y': y.detach(),
                 's': s.detach()}
 
     def on_train_batch_end(self,
-            outputs: Dict[str, torch.Tensor],
-            batch: TernarySample,
+            outputs: Dict[str, Tensor],
+            batch: Dict[str, Tensor],
             bathc_idx: int) -> None:
+
         self.kl_scheduler()
 
         # update and log metrics
@@ -137,8 +110,8 @@ class VAEModule(pl.LightningModule):
 
 
     def validation_step(self,
-            batch: TernarySample,
-            batch_idx: int) -> Dict[str, torch.Tensor]:
+            batch: Dict[str, Tensor],
+            batch_idx: int) -> Dict[str, Tensor]:
 
         x, y, s = batch
 
@@ -149,8 +122,8 @@ class VAEModule(pl.LightningModule):
                 's': s.detach()}
 
     def on_validation_batch_end(self,
-            outputs: Dict[str, torch.Tensor],
-            batch: TernarySample,
+            outputs: Dict[str, Tensor],
+            batch: Dict[str, Tensor],
             bathc_idx: int) -> None:
 
         # update and log metrics
@@ -160,7 +133,7 @@ class VAEModule(pl.LightningModule):
                        "val/kl_divergence": outputs["kl_divergence"].item()})
 
 
-    def test_step(self, batch: TernarySample, batch_idx: int):
+    def test_step(self, batch: Dict[str, Tensor], batch_idx: int):
 
         x, y, s = batch
 
@@ -171,8 +144,8 @@ class VAEModule(pl.LightningModule):
                 's': s.detach()}
 
     def on_test_batch_end(self,
-            outputs: Dict[str, torch.Tensor],
-            batch: TernarySample,
+            outputs: Dict[str, Tensor],
+            batch: Dict[str, Tensor],
             bathc_idx: int) -> None:
 
         # update and log metrics
@@ -182,7 +155,7 @@ class VAEModule(pl.LightningModule):
                        "test/kl_divergence": outputs["kl_divergence"].item() })
 
     def predict_step(self,
-                     batch: Dict[Any, TernarySample],
+                     batch: Dict[str, Tensor],
                      batch_idx: int,
                      dataloader_idx: int) -> Dict[Any, Dict[str, np.ndarray]]:
 

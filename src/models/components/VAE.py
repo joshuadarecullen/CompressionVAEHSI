@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
+from torch import Tensor
 
 import pyrootutils
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -14,7 +15,7 @@ class VAE(nn.Module):
                  decoder: nn.Module,
                  ) -> None:
 
-        super(VAE, self).__init__()
+        super().__init__()
         self.encoder = encoder
         self.decoder = decoder
 
@@ -22,9 +23,9 @@ class VAE(nn.Module):
         # model predicts mu and var of the learned distriution to apply
         # reparameterisation trick to sample z from learned distribution
 
-        mean_flat, log_var_flat = self.encoder(x)
-        z_flat = self.reparameterise(mean_flat, log_var_flat)
-        return mean_flat, log_var_flat, z_flat
+        mu, logvar = self.encoder(x)
+        z = self.reparameterise(mean, logvar)
+        return mu, logvar, z
 
     def decode(self, z):
         # input is  variational latent dimension vector sampled
@@ -32,15 +33,15 @@ class VAE(nn.Module):
         return self.decoder(z)
 
     def forward(self, x):
-        mean_flat, log_var_flat, z_flat = self.encode(x)
-        return mean_flat, log_var_flat, z_flat, self.decode(z_flat)
+        mu, logvar, z = self.encode(x)
+        return mu, logvar, z, self.decode(z)
 
     def loss_func(self,
-            x: torch.Tensor,
-            x_hat: torch.Tensor,
-            mean: torch.Tensor,
-            logvar: torch.Tensor,
-            x_log_var: torch.Tensor,
+            x: Tensor,
+            x_hat: Tensor,
+            mean: Tensor,
+            logvar: Tensor,
+            x_log_var: Tensor,
             beta: float) -> Dict:
 
 
@@ -71,9 +72,9 @@ class VAE(nn.Module):
 
     def kl_divergence(self,
                         mean: torch.Tensor,
-                        log_variance: torch.Tensor,
-                        ) -> torch.Tensor:
-        # sum over all values in each spectrogram
+                        log_variance: Tensor,
+                        ) -> Tensor:
+        # sum over all values 
         # calculate KL divergence between prior and surrogate posterior and take the batchwise mean
         # calculate the KL divergence element-wise
         kl_divergence = -1/2 * (1 + log_variance - mean.pow(2) - log_variance.exp())
