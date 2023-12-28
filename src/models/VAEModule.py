@@ -21,8 +21,8 @@ class VAEModule(pl.LightningModule):
             self,
             model: nn.Module,
             optimizer: Optional[Optimizer]=None,
-            scheduler: Optional[lr_scheduler]=None,
-            kl_scheduler: Optional[lr_scheduler]=None,
+            scheduler: lr_scheduler=None,
+            kl_scheduler: lr_scheduler=None,
             state_dict: Optional[Dict]=None,
             frozen: Optional[bool]=False,
             ) -> None:
@@ -34,8 +34,8 @@ class VAEModule(pl.LightningModule):
         self.save_hyperparameters()
 
         self.model = model
-        self.kl_scheduler = kl_scheduler
         self.scheduler = scheduler
+        self.kl_scheduler = kl_scheduler
 
         if state_dict:
             print("Using pretrained weights")
@@ -56,7 +56,8 @@ class VAEModule(pl.LightningModule):
     def model_step(self, x: Tensor) -> Dict[str, Tensor]:
 
         # pass through the model outputs shape [batch_size,14,120,120]
-        mu, logvar, z, recon = self.model(x_flat)
+        mu, logvar, z, recon, uncertainty = self.model(x)
+        # reconstructed, uncertainty = self.model.decode(z)
 
         if self.kl_scheduler:
             # Compute beta for cyclic annealing
@@ -65,34 +66,33 @@ class VAEModule(pl.LightningModule):
             beta = 1.0
 
         # compute the reconstruction loss
-        loss = self.model.loss_func(
-                x,
-                x_hat,
-                mean,
-                logvar,
-                x_log_var,
-                beta
-                )
+        # loss = self.model.loss_func(
+        #         x,
+        #         x_hat,
+        #         mean,
+        #         logvar,
+        #         x_log_var,
+        #         beta
+        #         )
 
-        return {**loss,
-                'beta-kl': beta*loss['kl_divergence'].item(),
-                'x_hat': x_hat.detach(),
+        return {#**loss,
+                # 'beta-kl': beta*loss['kl_divergence'].item(),
+                'recon': recon.detach(),
                 'x': x.detach(),
                 'z': z.detach(),
-                'xlogvar': x_log_var.detach()}
+                'uncertainty': uncertainty.detach()}
 
 
     def training_step(self,
-                      batch: Dict[str, Tensor]
-            batch_idx: int) -> Dict[str, Tensor]:
+                      batch: Dict[str, Tensor],
+                      batch_idx: int) -> Dict[str, Tensor]:
 
-        x, y, s = batch
+        x, y = batch.values()
 
         outputs = self.model_step(x)
 
         return {**outputs,
-                'y': y.detach(),
-                's': s.detach()}
+                'y': y.detach()}
 
     def on_train_batch_end(self,
             outputs: Dict[str, Tensor],
@@ -113,13 +113,12 @@ class VAEModule(pl.LightningModule):
             batch: Dict[str, Tensor],
             batch_idx: int) -> Dict[str, Tensor]:
 
-        x, y, s = batch
+        x, y = batch.values()
 
         outputs = self.model_step(x)
 
         return {**outputs,
-                'y': y.detach(),
-                's': s.detach()}
+                'y': y.detach()}
 
     def on_validation_batch_end(self,
             outputs: Dict[str, Tensor],
@@ -135,13 +134,12 @@ class VAEModule(pl.LightningModule):
 
     def test_step(self, batch: Dict[str, Tensor], batch_idx: int):
 
-        x, y, s = batch
+        x, y = batch.values()
 
         outputs = self.model_step(x)
 
         return {**outputs,
-                'y': y.detach(),
-                's': s.detach()}
+                'y': y.detach()}
 
     def on_test_batch_end(self,
             outputs: Dict[str, Tensor],
@@ -159,16 +157,14 @@ class VAEModule(pl.LightningModule):
                      batch_idx: int,
                      dataloader_idx: int) -> Dict[Any, Dict[str, np.ndarray]]:
 
-        split = 'train' if dataloader_idx == 0 else 'val'
+        # split = 'train' if dataloader_idx == 0 else 'val'
 
-        x, y, s = batch
+        x, y = batch.values()
         # pass through the model
         output = self.model_step(x)
-        outputs = {**output,
-                   "y": y.detach(),
-                   "s": s.detach()}
 
-        return {split: outputs}
+        return {**output,
+                "y": y.detach()}
 
 
     def configure_optimizers(self):

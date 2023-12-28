@@ -24,7 +24,7 @@ class VAE(nn.Module):
         # reparameterisation trick to sample z from learned distribution
 
         mu, logvar = self.encoder(x)
-        z = self.reparameterise(mean, logvar)
+        z = self.reparameterise(mu, logvar)
         return mu, logvar, z
 
     def decode(self, z):
@@ -34,7 +34,8 @@ class VAE(nn.Module):
 
     def forward(self, x):
         mu, logvar, z = self.encode(x)
-        return mu, logvar, z, self.decode(z)
+        recon, uncertainty = self.decode(z)
+        return (mu, logvar, z, recon, uncertainty)
 
     def loss_func(self,
             x: Tensor,
