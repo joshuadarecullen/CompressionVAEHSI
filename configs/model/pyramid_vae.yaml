@@ -30,5 +30,5 @@ state_dict: Null
 frozen: False
 
 # compile model for faster training with pytorch 2.0
-compile: false
+# compile: false
 

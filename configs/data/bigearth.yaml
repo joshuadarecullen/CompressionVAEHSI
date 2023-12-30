@@ -1,9 +1,9 @@
-_target_: src.data.datamodule.BigEarthDataModule
+_target_: src.data.bigearth_datamodule.BigEarthDataModule
 dataset_dir: ${paths.data_dir}
 batch_size: 16 # Needs to be divisible by the number of devices (e.g., if in a distributed setup)
 transforms: Null
 train_val_test_split: [0.6, 0.2, 0.2]
 num_workers: 8
 pin_memory: False
-bands: "s2"
+bands: "all"
 

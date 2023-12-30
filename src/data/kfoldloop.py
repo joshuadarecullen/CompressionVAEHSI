@@ -8,10 +8,10 @@ import torchvision.transforms as T
 from sklearn.model_selection import KFold
 from torch.nn import functional as F
 
-from pytorch_lightning import LightningDataModule, seed_everything, Trainer
-from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loops.base import Loop
-from pytorch_lightning.loops.fit_loop import FitLoop
+from pytorch_lightning import LightningDataModule, seed_everything, Trainer, LightningModule
+# from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.loops.loop import _Loop as Loop
+from pytorch_lightning.loops.fit_loop import _FitLoop as FitLoop
 from pytorch_lightning.trainer.states import TrainerFn
 
 seed_everything(42)
@@ -35,8 +35,8 @@ class EnsembleVotingModel(LightningModule):
 
 
 class KFoldLoop(Loop):
-    def __init__(self, num_folds: int, fit_loop: FitLoop, export_path: str):
-        super().__init__()
+    def __init__(self, num_folds: int, fit_loop: FitLoop, trainer: Trainer, export_path: str):
+        super().__init__(trainer=trainer)
         self.num_folds = num_folds
         self.fit_loop = fit_loop
         self.current_fold: int = 0
