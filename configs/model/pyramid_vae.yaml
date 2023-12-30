@@ -1,0 +1,34 @@
+_target_: src.models.VAEModule.VAEModule
+
+model:
+  _target_: src.models.components.VAE.VAE
+
+  encoder:
+    _target_: src.models.components.encoder.Encoder
+    # feature_layers: [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M']
+
+  decoder:
+    _target_: src.models.components.decoder.Decoder
+
+optimizer:
+  _target_: torch.optim.Adam
+  _partial_: true
+  lr: 0.001
+  weight_decay: 0.0
+
+scheduler:
+  _target_: torch.optim.lr_scheduler.ReduceLROnPlateau
+  _partial_: true
+  mode: min
+  factor: 0.1
+  patience: 10
+
+kl_scheduler: Null
+
+state_dict: Null
+
+frozen: False
+
+# compile model for faster training with pytorch 2.0
+compile: false
+
