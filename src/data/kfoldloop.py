@@ -8,11 +8,11 @@ import torchvision.transforms as T
 from sklearn.model_selection import KFold
 from torch.nn import functional as F
 
-from pytorch_lightning import LightningDataModule, seed_everything, Trainer, LightningModule
+from lightning import LightningDataModule, seed_everything, Trainer, LightningModule
 # from pytorch_lightning.core.lightning import LightningModule
-from pytorch_lightning.loops.loop import _Loop as Loop
-from pytorch_lightning.loops.fit_loop import _FitLoop as FitLoop
-from pytorch_lightning.trainer.states import TrainerFn
+from lightning.loops.loop import _Loop as Loop
+from lightning.loops.fit_loop import _FitLoop as FitLoop
+from lightning.trainer.states import TrainerFn
 
 seed_everything(42)
 

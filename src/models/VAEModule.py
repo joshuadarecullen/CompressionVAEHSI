@@ -4,15 +4,16 @@ import torch
 from torch import nn, Tensor
 from torch.optim import lr_scheduler, Optimizer
 
-import pytorch_lightning as pl
-from pytorch_lightning import LightningModule
+import lightning as l
+from lightning import LightningModule
 
 import numpy as np
+# import numpy.typing as npt
 
-import pyrootutils
-pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+import rootutils
+rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-class VAEModule(pl.LightningModule):
+class VAEModule(LightningModule):
 
     """
         LightningModule for Ecoacoustic VAE, the model has to be passed in only with optimiser and scheduler.

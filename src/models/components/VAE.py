@@ -5,8 +5,8 @@ import torch.nn.functional as F
 from torch.distributions.normal import Normal
 from torch import Tensor
 
-import pyrootutils
-pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+# import pyrootutils
+# pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 class VAE(nn.Module):
 

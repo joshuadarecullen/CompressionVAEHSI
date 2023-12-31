@@ -7,28 +7,14 @@ from torchvision.transforms import transforms
 from sklearn.model_selection import KFold
 
 from torchgeo.datamodules.bigearthnet import BigEarthNetDataModule
-# from torchgeo.datasets.bigearthnet import BigEarthNetDataset
-# from lightning import LightningDataModule
 
-import logging
-import os
 import pathlib
-import tarfile
+import rootutils
 
-import gdown
-import hub
-import numpy as np
-import pytorch_lightning as pl
-import torch.utils.data.dataloader
-
-import pyrootutils
-pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from src.data.base_kfoldmodule import BaseKFoldDataModule
 from src.data.bigearth_dataset import BigEarthDataset
-
-
-# logger = logging.getLogger(__name__)
 
 
 class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
@@ -38,23 +24,21 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
         self,
         dataset_dir: str,
         batch_size: int,
-        transforms: Optional[Callable[[Dict[str, Tensor]], Dict[str, Tensor]]] = None,
-        train_val_test_split: Tuple[float, float, float] = (0.6, 0.2, 0.2),
         num_workers: int = 1,
-        pin_memory: bool = False,
         bands: str = "s2",
+        pin_memory: bool = False,
+        train_val_test_split: Tuple[float, float, float] = (0.6, 0.2, 0.2),
+        transforms: Optional[Callable[[Dict[str, Tensor]], Dict[str, Tensor]]] = None,
     ):
         """Validates the hyperparameter config dictionary and sets up internal attributes."""
         self.save_hyperparameters(logger=False)
 
         self.dataset_dir = pathlib.Path(dataset_dir)
-        self.num_workers = num_workers
         self.batch_size_per_device = batch_size
+        self.num_workers = num_workers
         self.bands = bands
-        self.transforms = transforms
-        # self.dataset_name = dataset_name
-
         self.train_split, self.valid_split, self.test_split = train_val_test_split
+        self.transforms = transforms
 
         train_dataset: Optional[Dataset] = None
         test_dataset: Optional[Dataset] = None
@@ -183,5 +167,4 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
         pass
 
 if __name__ == "__main__":
-    _ = BigEarthNetDataModule()
-
+    _ = BigEarthNetDataModule(None, None)
