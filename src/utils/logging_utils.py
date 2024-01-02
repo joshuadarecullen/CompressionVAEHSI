@@ -1,14 +1,14 @@
 from typing import Any, Dict
 
-from lightning_utilities.core.rank_zero import rank_zero_only
+# from lightning_utilities.core.rank_zero import rank_zero_only
 from omegaconf import OmegaConf
 
-from src.utils import pylogger
+# from src.utils import pylogger
 
-log = pylogger.RankedLogger(__name__, rank_zero_only=True)
+# log = pylogger.RankedLogger(__name__, rank_zero_only=True)
 
 
-@rank_zero_only
+# @rank_zero_only
 def log_hyperparameters(object_dict: Dict[str, Any]) -> None:
     """Controls which config parts are saved by Lightning loggers.
 

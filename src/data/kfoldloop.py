@@ -9,7 +9,7 @@ from sklearn.model_selection import KFold
 from torch.nn import functional as F
 
 from pytorch_lightning import LightningDataModule, seed_everything, Trainer
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning import LightningModule
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.trainer.states import TrainerFn

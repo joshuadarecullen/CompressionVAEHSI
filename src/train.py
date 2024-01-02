@@ -1,11 +1,11 @@
 from typing import Any, Dict, List, Optional, Tuple
 
 import hydra
-import lightning as L
+import pytorch_lightning as pl
 import rootutils
 import torch
-from lightning import Callback, LightningDataModule, LightningModule, Trainer
-from lightning.pytorch.loggers import Logger
+from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
+,rom pytorch_lightning.loggers.base import LightningLoggerBase as Logger
 from omegaconf import DictConfig
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -35,6 +35,7 @@ from src.utils import (
     log_hyperparameters,
     task_wrapper,
 )
+from src.data.kfoldloop import KFoldLoop
 
 log = RankedLogger(__name__, rank_zero_only=True)
 
@@ -68,6 +69,8 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
     trainer: Trainer = hydra.utils.instantiate(cfg.trainer, callbacks=callbacks, logger=logger)
+    internal_fitloop = trainer.fit_loop
+    trainer.fit_loop = KFoldLoop(5, internal_fitloop, cfg.get("callbacks")["model_checkpoint"]["dirpath"])
 
     object_dict = {
         "cfg": cfg,
@@ -83,7 +86,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         log_hyperparameters(object_dict)
 
     if cfg.get("train"):
-        log.info("Starting training!")
+        # log.info("Starting training!")
         trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
 
     train_metrics = trainer.callback_metrics

@@ -12,7 +12,7 @@ import numpy as np
 import pyrootutils
 pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
-class VAEModule(pl.LightningModule):
+class VAEModule(LightningModule):
 
     """
         LightningModule for Ecoacoustic VAE, the model has to be passed in only with optimiser and scheduler.
