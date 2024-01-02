@@ -35,16 +35,20 @@ class EnsembleVotingModel(LightningModule):
 
 
 class KFoldLoop(Loop):
-    def __init__(self, num_folds: int, fit_loop: FitLoop, trainer: Trainer, export_path: str):
-        super().__init__(trainer=trainer)
+    # def __init__(self, num_folds: int, fit_loop: FitLoop, trainer: Trainer, export_path: str):
+    def __init__(self, trainer: Trainer, num_folds: int, export_path: str):
+        super().__init__(trainer)
         self.num_folds = num_folds
-        self.fit_loop = fit_loop
+        # self.fit_loop = fit_loop
         self.current_fold: int = 0
         self.export_path = export_path
 
     @property
     def done(self) -> bool:
         return self.current_fold >= self.num_folds
+
+    def connect(self, fit_loop: FitLoop) -> None:
+        self.fit_loop = fit_loop
 
     def reset(self) -> None:
         """Nothing to reset in this loop."""

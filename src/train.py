@@ -41,7 +41,6 @@ from src.data.kfoldloop import KFoldLoop
 
 log = RankedLogger(__name__, rank_zero_only=True)
 
-
 @task_wrapper
 def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
@@ -71,7 +70,9 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
     trainer: Trainer = hydra.utils.instantiate(cfg.trainer, callbacks=callbacks, logger=logger)
-    # trainer.fit_loop = KFoldLoop(5, trainer.fit_loop, trainer=trainer, export_path="./")
+    internal_fit_loop = trainer.fit_loop
+    trainer.fit_loop = KFoldLoop(trainer, 5, export_path=cfg.get("callbacks")['dirpath'])
+    trainer.fit_loop.connect(internal_fit_loop)
 
     object_dict = {
         "cfg": cfg,

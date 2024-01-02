@@ -8,7 +8,7 @@ defaults:
   - model: pyramid_vae
   - callbacks: default
   - logger: wandb.yaml # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
-  - trainer: gpu.yaml
+  - trainer: kfold.yaml
   - paths: default
   - extras: default
   - hydra: default

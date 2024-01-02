@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 import torch
 
-import pyrootutils
-pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+import rootutils
+rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 
 from src.data.bigearth_datamodule import BigEarthDataModule
 
