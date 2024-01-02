@@ -10,9 +10,9 @@ from torch.nn import functional as F
 
 from lightning import LightningDataModule, seed_everything, Trainer, LightningModule
 # from pytorch_lightning.core.lightning import LightningModule
-from lightning.loops.loop import _Loop as Loop
-from lightning.loops.fit_loop import _FitLoop as FitLoop
-from lightning.trainer.states import TrainerFn
+from lightning.pytorch.loops.loop import _Loop as Loop
+from lightning.pytorch.loops.fit_loop import _FitLoop as FitLoop
+from lightning.pytorch.trainer.states import TrainerFn
 
 seed_everything(42)
 
@@ -36,8 +36,8 @@ class EnsembleVotingModel(LightningModule):
 
 class KFoldLoop(Loop):
     # def __init__(self, num_folds: int, fit_loop: FitLoop, trainer: Trainer, export_path: str):
-    def __init__(self, trainer: Trainer, num_folds: int, export_path: str):
-        super().__init__(trainer)
+    def __init__(self, num_folds: int, export_path: str): #trainer: Trainer
+        super().__init__()#trainer)
         self.num_folds = num_folds
         # self.fit_loop = fit_loop
         self.current_fold: int = 0
@@ -70,7 +70,6 @@ class KFoldLoop(Loop):
         """Used to the run a fitting and testing on the current hold."""
         self._reset_fitting()  # requires to reset the tracking stage.
         self.fit_loop.run()
-
         self._reset_testing()  # requires to reset the tracking stage.
         self.trainer.test_loop.run()
         self.current_fold += 1  # increment fold tracking number.

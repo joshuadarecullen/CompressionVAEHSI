@@ -3,7 +3,7 @@ import os
 from torch import Tensor
 from torchgeo.datasets.bigearthnet import BigEarthNet
 from typing import Callable, Dict, List, Optional
-from typing_extensions import override
+# from typing_extensions import override
 
 
 class BigEarthDataset(BigEarthNet):
@@ -28,7 +28,7 @@ class BigEarthDataset(BigEarthNet):
                 checksum,
                 )
 
-    @override
+    # @override
     def _verify(self) -> None:
         """Verify the integrity of the dataset.
 
@@ -120,7 +120,7 @@ class BigEarthDataset(BigEarthNet):
             self._combine_csvs(splits_exist)
 
 
-    @override
+    # @override
     def _load_folders(self) -> List[Dict[str, str]]:
         """Load folder paths.
 
