@@ -67,14 +67,14 @@ class VAEModule(LightningModule):
             beta = 1.0
 
         # compute the reconstruction loss
-        # loss = self.model.loss_func(
-        #         x,
-        #         x_hat,
-        #         mean,
-        #         logvar,
-        #         x_log_var,
-        #         beta
-        #         )
+        loss = self.model.loss_func(
+                x,
+                x_hat,
+                mean,
+                logvar,
+                x_log_var,
+                beta
+                )
 
         return {#**loss,
                 # 'beta-kl': beta*loss['kl_divergence'].item(),

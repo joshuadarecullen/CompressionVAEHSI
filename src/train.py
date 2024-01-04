@@ -1,7 +1,8 @@
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type
 
 import hydra
 import rootutils
+from copy import deepcopy
 
 import lightning as L
 import torch
@@ -41,6 +42,22 @@ from src.data.kfoldloop import KFoldLoop
 
 log = RankedLogger(__name__, rank_zero_only=True)
 
+'''
+The `EnsembleVotingModel` will take our custom LightningModule and
+several checkpoint_paths.
+'''
+class EnsembleVotingModel(LightningModule):
+    def __init__(self, model_cls: Type[LightningModule], checkpoint_paths: List[str]):
+        super().__init__()
+        # Create `num_folds` models with their associated fold weights
+        self.models = torch.nn.ModuleList([model_cls.load_from_checkpoint(p) for p in checkpoint_paths])
+
+    def test_step(self, batch: Any, batch_idx: int, dataloader_idx: int = 0) -> None:
+        # Compute the averaged predictions over the `num_folds` models.
+        logits = torch.stack([m(batch[0]) for m in self.models]).mean(0)
+        loss = F.cross_entropy(logits, batch[1])
+        self.log("test_loss", loss)
+
 @task_wrapper
 def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
@@ -59,7 +76,6 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     log.info(f"Instantiating datamodule <{cfg.data._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(cfg.data)
     datamodule.setup()
-    datamodule.setup_folds(5)
 
     log.info(f"Instantiating model <{cfg.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(cfg.model)
@@ -70,11 +86,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     log.info("Instantiating loggers...")
     logger: List[Logger] = instantiate_loggers(cfg.get("logger"))
 
-    log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
-    trainer: Trainer = hydra.utils.instantiate(cfg.trainer, callbacks=callbacks, logger=logger)
-    internal_fit_loop = trainer.fit_loop
-    trainer.fit_loop = KFoldLoop(5, export_path=cfg.get("callbacks")['model_checkpoint']['dirpath'])
-    trainer.fit_loop.connect(internal_fit_loop)
+    # log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
 
     object_dict = {
         "cfg": cfg,
@@ -91,10 +103,26 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if cfg.get("train"):
         log.info("Starting training!")
-        trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
+        datamodule.setup_folds(cfg.get("folds"))
+        lightning_module_state_dict = deepcopy(model.state_dict())
 
-    train_metrics = trainer.callback_metrics
+        for current_fold in range(cfg.get("folds")):
+            log.info(f"Current fold {current_fold}")
+            datamodule.setup_fold_index(current_fold)
+            model.load_state_dict(lightning_module_state_dict)
 
+            #TODO update the checkpoint exportpath in model checkpoint to include fold
+            # export_path = cfg.get("callbacks")['model_checkpoint']['dirpath']
+
+            trainer: Trainer = hydra.utils.instantiate(cfg.trainer, callbacks=callbacks, logger=logger)
+            trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
+            train_metrics = trainer.callback_metrics
+
+            # trainer.save_checkpoint(osp.join(export_path, f"model.{self.current_fold}.pt"))
+
+        checkpoint_paths = [osp.join(self.export_path, f"model.{f_idx + 1}.pt") for f_idx in range(cfg.get("folds"))]
+
+    '''
     if cfg.get("test"):
         log.info("Starting testing!")
         ckpt_path = trainer.checkpoint_callback.best_model_path
@@ -106,8 +134,11 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     test_metrics = trainer.callback_metrics
 
-    # merge train and test metrics
+    merge train and test metrics
     metric_dict = {**train_metrics, **test_metrics}
+    '''
+
+    metric_dict = train_metrics
 
     return metric_dict, object_dict
 
