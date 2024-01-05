@@ -139,7 +139,7 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
 
     def setup_fold_index(self, fold_index: int) -> None:
         train_indices, val_indices = self.splits[fold_index]
-        self,train_fold = Subset(self.train_dataset, train_indices)
+        self.train_fold = Subset(self.train_dataset, train_indices)
         self.val_fold = Subset(self.train_dataset, val_indices)
 
     def teardown(self, stage: Optional[str] = None) -> None:

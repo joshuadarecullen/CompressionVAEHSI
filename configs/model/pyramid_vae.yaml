@@ -23,7 +23,11 @@ scheduler:
   factor: 0.1
   patience: 10
 
-kl_scheduler: Null
+kl_scheduler:
+  _target_: src.optimisers.cyclic_annealing.CyclicBatchAnnealer
+  cycle_length: 3040
+  max_value: 1.0
+  warmup_batches: 608
 
 state_dict: Null
 

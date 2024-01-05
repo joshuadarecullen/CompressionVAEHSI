@@ -103,10 +103,11 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if cfg.get("train"):
         log.info("Starting training!")
-        datamodule.setup_folds(cfg.get("folds"))
+        datamodule.setup_folds(cfg.get("num_folds"))
+        # store the original state of the 1st generated model for continuity across the folds
         lightning_module_state_dict = deepcopy(model.state_dict())
 
-        for current_fold in range(cfg.get("folds")):
+        for current_fold in range(cfg.get("num_folds")):
             log.info(f"Current fold {current_fold}")
             datamodule.setup_fold_index(current_fold)
             model.load_state_dict(lightning_module_state_dict)

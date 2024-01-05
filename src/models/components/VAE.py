@@ -5,8 +5,9 @@ import torch.nn.functional as F
 from torch.distributions.normal import Normal
 from torch import Tensor
 
-# import pyrootutils
-# pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+import rootutils
+rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
+from src.models.components.lossfuncs import sam_loss
 
 class VAE(nn.Module):
 
@@ -39,25 +40,28 @@ class VAE(nn.Module):
 
     def loss_func(self,
             x: Tensor,
-            x_hat: Tensor,
-            mean: Tensor,
+            recon: Tensor,
+            mu: Tensor,
             logvar: Tensor,
-            x_log_var: Tensor,
+            uncertainty: Tensor,
             beta: float) -> Dict:
 
 
         # sum the loss components, taking batchwise mean
-        log_likelihood = self.likelihood(x, x_hat, x_log_var).mean(axis=0)
-        kl_divergence = self.kl_divergence(mean, logvar).mean(axis=0)
+        log_likelihood = self.likelihood(x, recon, uncertainty).mean(axis=0)
+        kl_divergence = self.kl_divergence(mu, logvar).mean(axis=0)
         real_loss = log_likelihood + kl_divergence
 
-        loss = log_likelihood + kl_divergence * beta
+        sam_loss = sam_loss(x, recon)
+
+        loss = log_likelihood + (kl_divergence * beta) + sam_loss
 
         # return a dict of loss tensors
         return {"loss": loss,
                 "real_loss": real_loss,
                 "log_likelihood": log_likelihood,
-                "kl_divergence": kl_divergence}
+                "kl_divergence": kl_divergence,
+                "sam_loss": sam_loss}
 
     def likelihood(self,
                      x: torch.Tensor,
