@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from lightning import LightningDataModule
+from pytorch_lightning import LightningDataModule
 
 class BaseKFoldDataModule(LightningDataModule, ABC):
     @abstractmethod

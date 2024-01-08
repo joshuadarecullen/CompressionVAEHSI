@@ -14,6 +14,8 @@ from src.models.components.encoder import Encoder
 from src.models.components.decoder import Decoder
 from src.models.components.lossfuncs import sam_loss
 
+from lightning import Trainer
+
 from src.callbacks.reconstructor import Reconstructor
 
 # @pytest.mark.parametrize("batch_size", [32])
@@ -53,13 +55,13 @@ def test_model(batch_size: int) -> None:
     print(f"nll: {log_likelihood}")
     print(f"sam loss: {samL}")
 
-    outputs = {"x": x,
-               "recon": recon,
-               "y": y,
-               "uncertainty": uncertainty}
+    outputs = {"x": x.detach(),
+               "recon": recon.detach(),
+               "y": y.detach(),
+               "uncertainty": uncertainty.detach()}
 
     reconstructor = Reconstructor(40, 0.25)
-    reconstructor.generate_figures(outputs)
+    reconstructor.generate_figures(dm.label_decoder, outputs)
 
 
 if __name__ == "__main__":

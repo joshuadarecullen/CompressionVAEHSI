@@ -4,12 +4,13 @@ import wandb
 from torch import Tensor
 import lightning as L
 from lightning import Callback
+import numpy as np
+import matplotlib.pyplot as plt
 
 from matplotlib.figure import Figure
 
 import rootutils
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
-# from src.utils.utils import generate_title_string
 
 class Reconstructor(Callback):
     def __init__(self,
@@ -67,7 +68,7 @@ class Reconstructor(Callback):
 
 
     def generate_figures(self,
-                   # trainer: pl.Trainer,
+                   trainer: L.Trainer,
                    outputs: Dict[str, Tensor]) -> Iterator[Figure]:
 
         # loading  modules here stops internel rm tree os error and tkinter main thread error
@@ -99,32 +100,41 @@ class Reconstructor(Callback):
 
             # plot input
             ax1.set_title("Input HSI", fontsize='medium')
-            x = x[2:5,:,:].detach().permute(1,2,0).numpy()
-            ax1.imshow(x[:,:,::-1])
+            x = self.correct_img(x[3:6,:,:].numpy())
+            ax1.imshow(x)
 
             # plot reconstruction
             ax2.set_title("Reconstructed HSI", fontsize='medium')
-            recon = recon[2:5,:,:].detach().permute(1,2,0)
-            ax2.imshow(recon[:,:,::-1])
+            recon = self.correct_img(recon[3:6,:,:].numpy())
+            ax2.imshow(recon)
 
 
             # plot uncertainty
             ax3.set_title("Uncertainty Spectrogram", fontsize='medium')
-            x_std = x_std[2:5,:,:].detach().permute(1,2,0)
-            ax3.imshow(x_std[:,:,::-1])
+            x_std = self.correct_img(x_std[3:6,:,:].numpy())
+            ax3.imshow(x_std)
 
             # set a title
-            # suptitle = generate_title_string(
-            #         trainer.datamodule.train_data.dataset.decoder,
-            #         trainer.datamodule.target_attrs,
-            #         y,
-            #         int(s)
-            #         )
-
-            # fig.suptitle(suptitle, wrap=True)
+            suptitle = ", ".join(self.get_label_names(y, trainer))
+            fig.suptitle(suptitle, wrap=True)
             plt.show()
 
             # return fig
 
-    def nomalise(self, arr):
-        pass
+    def correct_img(self, img):
+        img = self.normalise(img)
+        img = np.moveaxis(img, 0, 2) # C, W, H > W, H, C
+        img = img[:,:,::-1] # BGR to RGB
+        return img
+
+    def normalise(self, img):
+        for band in range(len(img)):
+            # normalize based on min/max pixel values to clamp ranges in [0, 1]
+            img[band, ...] = (img[band, ...] - np.min(img[band, ...])) / np.max(img[band, ...])
+        return img
+
+    def get_label_names(self, onehots, class_names):
+        """get all the names when a label is a one-hot."""
+        label_idx = np.where(onehots)[0]
+        label_names = [class_names[19][idx] for idx in label_idx]
+        return label_names

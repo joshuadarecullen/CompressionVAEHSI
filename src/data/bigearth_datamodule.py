@@ -40,6 +40,9 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
         self.train_split, self.valid_split, self.test_split = train_val_test_split
         self.transforms = transforms
 
+        label_decoder: Dict[int, List[str]] = None
+        label_converter: Dict[int,int] = None
+
         train_dataset: Optional[Dataset] = None
         test_dataset: Optional[Dataset] = None
 
@@ -63,6 +66,13 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
                 download=True,
                 )
 
+    def get_dataset(self) -> BigEarthDataset:
+        data = BigEarthDataset(
+                root=self.dataset_dir,
+                bands=self.bands,
+                download=False,
+                )
+        return data
 
     def setup(self, stage: Optional[str] = None) -> None:
         """Parses and splits all samples across the train/valid/test datasets."""
@@ -72,6 +82,8 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
                                 bands=self.bands,
                                 transforms=self.transforms
                                 )
+        self.label_decoder = dataset.class_sets
+        self.label_converter = dataset.label_converter
 
         # Divide batch size by the number of devices.
         if self.trainer is not None:
