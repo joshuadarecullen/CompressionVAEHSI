@@ -131,17 +131,27 @@ class BigEarthDataset(BigEarthNet):
         dir_s1 = self.metadata["s1"]["directory"]
         dir_s2 = self.metadata["s2"]["directory"]
 
-        with open(os.path.join(self.root, filename)) as f:
-            lines = f.read().strip().splitlines()
-            pairs = [line.split(",") for line in lines]
+        master_csv = pd.read_csv(os.path.join(self.root, filename))
 
         folders = [
-            {
-                "s1": os.path.join(self.root, dir_s1, pair[1]),
-                "s2": os.path.join(self.root, dir_s2, pair[0]),
-            }
-            for pair in pairs
+                {
+                    "s1": os.path.join(self.root, dir_s1, s1_file),
+                    "s2": os.path.join(self.root, dir_s2, s2_file)
+                }
+                for (s1_file, s2_file) in zip(master_csv['S1'], master_csv['S2'])
         ]
+
+        # with open(os.path.join(self.root, filename)) as f:
+        #     lines = f.read().strip().splitlines()
+        #     pairs = [line.split(",") for line in lines]
+
+        # folders = [
+        #     {
+        #         "s1": os.path.join(self.root, dir_s1, pair[1]),
+        #         "s2": os.path.join(self.root, dir_s2, pair[0]),
+        #     }
+        #     for pair in pairs
+        # ]
         return folders
 
     def _combine_csvs(self, csvs: List) -> None:
@@ -149,4 +159,5 @@ class BigEarthDataset(BigEarthNet):
 
         # ignore index stops 1st row being set as column names
         combined_df = pd.concat(dfs, ignore_index=True) 
+        combined_df.columns = {'S2', 'S1'}
         combined_df.to_csv(os.path.join(self.root, 'master.csv'), index=False)

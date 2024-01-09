@@ -45,3 +45,4 @@ dependencies:
       - rootutils
       - torchgeo
       - scikit-learn
+      - pandas

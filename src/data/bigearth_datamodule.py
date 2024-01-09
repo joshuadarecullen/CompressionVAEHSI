@@ -66,14 +66,6 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
                 download=True,
                 )
 
-    def get_dataset(self) -> BigEarthDataset:
-        data = BigEarthDataset(
-                root=self.dataset_dir,
-                bands=self.bands,
-                download=False,
-                )
-        return data
-
     def setup(self, stage: Optional[str] = None) -> None:
         """Parses and splits all samples across the train/valid/test datasets."""
         # self.dataset_path = download_data(self.dataset_dir, self.dataset_name)
@@ -144,6 +136,34 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
             shuffle=False,
             num_workers=self.num_workers,
         )
+
+    def on_after_batch_transfer(
+         self, batch: dict[str, Tensor], dataloader_idx: int
+     ) -> dict[str, Tensor]:
+        """Apply batch augmentations to the batch after it is transferred to the device.
+
+         Args:
+             batch: A batch of data that needs to be altered or augmented.
+             dataloader_idx: The index of the dataloader to which the batch belongs.
+
+         Returns:
+             A batch of data.
+         """
+        if self.trainer:
+            if self.trainer.training:
+                split = "train"
+            elif self.trainer.validating or self.trainer.sanity_checking:
+                split = "val"
+            elif self.trainer.testing:
+                split = "test"
+            elif self.trainer.predicting:
+                split = "predict"
+
+            aug = self._valid_attribute(f"{split}_aug", "aug")
+            batch = self.aug(aug(batch))
+
+        return batch
+
 
     def setup_folds(self, num_folds: int) -> None:
         self.num_folds = num_folds

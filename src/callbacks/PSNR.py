@@ -23,24 +23,7 @@ class PSNR(Callback):
         A callback to compute the Peak Signal to Noise Ratio (PSNR)
         on the indvidual bands of the hyperspectral image
         """
-        self.MAX_Is = {
-                       0: 5,
-                       1: 1,
-                       2: 1,
-                       3: 1,
-                       4: 1,
-                       5: 1,
-                       6: 3,
-                       7: 3,
-                       8: 3,
-                       9: 3,
-                       10: 3,
-                       11: 3,
-                       12: 3,
-                       13: 3
-                       }
 
-    
     def on_train_batch_end(self,
                            trainer: L.Trainer,
                            pl_module: L.LightningModule,
@@ -78,7 +61,7 @@ class PSNR(Callback):
                           ) -> None:
         psnrs = {}
         for j, (x, recon) in enumerate(zip(outputs['x'], outputs['recon'])):
-            psnr = self.psnr(x, recon, j)
+            psnr = self.psnr(x, recon, j, trainer.datamodule.maxs)
             psnrs[j] = psnr
 
         pl_module.log("test/band_psnr", psnrs)
@@ -86,10 +69,10 @@ class PSNR(Callback):
     def psnr(self,
              band1: Tensor,
              band2: Tensor,
-             bandType: str) -> float:
+             bandType: str,
+             MAX_Is: List[float]) -> float:
         """
         Calculates the PSNR between two images.
-        
         Args:
         band1 (torch.Tensor): The original image.
         band2 (torch.Tensor): The reconstructed image.
@@ -102,7 +85,7 @@ class PSNR(Callback):
             # If the images are identical, return an infinite PSNR
             return float('inf')
         
-        MAX_I = self.MAX_Is[bandType]  # Assumes images are scaled between 0 and 1
+        MAX_I = MAX_Is[bandType]  # Assumes images are scaled between 0 and 1
         psnr_value = 20 * log10(MAX_I / sqrt(mse))
         
         return psnr_value.item()
