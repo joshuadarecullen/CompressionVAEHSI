@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Iterator
 import wandb
 import math
 
-from torch import Tensor, log10, sqrt
+from torch import Tensor, log10, sqrt, inf
 import torch.nn.functional as F
 import lightning as L
 from lightning import Callback
@@ -31,10 +31,7 @@ class PSNR(Callback):
                            batch: Dict[str, Tensor],
                            batch_idx: int) -> None:
 
-        psnrs = {}
-        for j, (x, recon) in enumerate(zip(outputs['x'], outputs['recon'])):
-            psnr = self.psnr(x, recon, j)
-            psnrs[j] = psnr
+        psnrs = self.generate_loss(outputs)
 
         pl_module.log("train/band_psnr", psnrs)
 
@@ -45,10 +42,9 @@ class PSNR(Callback):
                                 batch: Dict[str, Tensor],
                                 batch_idx: int,
                                 ) -> None:
-        psnrs = {}
-        for j, (x, recon) in enumerate(zip(outputs['x'], outputs['recon'])):
-            psnr = self.psnr(x, recon, j)
-            psnrs[j] = psnr
+
+        psnrs = self.generate_loss(outputs)
+
 
         pl_module.log("val/band_psnr", psnrs)
 
@@ -59,33 +55,46 @@ class PSNR(Callback):
                           batch: Dict[str, Tensor],
                           batch_idx: int,
                           ) -> None:
-        psnrs = {}
-        for j, (x, recon) in enumerate(zip(outputs['x'], outputs['recon'])):
-            psnr = self.psnr(x, recon, j, trainer.datamodule.maxs)
-            psnrs[j] = psnr
+
+        psnrs = self.generate_loss(outputs)
 
         pl_module.log("test/band_psnr", psnrs)
 
+    def generate_loss(self,
+                      outputs: Dict[str,Tensor]) -> float:
+        psnrs = []
+        for j, (x, recon) in enumerate(zip(outputs['x'], outputs['recon'])):
+            band_psnrs = []
+
+            for i, (band1, band2) in enumerate(x, recon):
+                psnr = self.psnr(x_band, reacon_band)#, j, maxs)
+                band_psnrs.append(psnr)
+
+            psnrs.append(band_psnr)
+
+        psnr_means = np.mean(psnr).mean(axis=0)
+        tagged_psnrs = {f'band_{i}': psnr_means[i] for i in range(len(psnr_means))}
+
+        return tagged_psnrs
+
     def psnr(self,
              band1: Tensor,
-             band2: Tensor,
-             bandType: str,
-             MAX_Is: List[float]) -> float:
+             band2: Tensor) -> float:
         """
         Calculates the PSNR between two images.
         Args:
-        band1 (torch.Tensor): The original image.
-        band2 (torch.Tensor): The reconstructed image.
+        band1 (torch.Tensor): The original image band.
+        band2 (torch.Tensor): The reconstructed image band.
 
         Returns:
         float: The PSNR value.
         """
         mse = F.mse_loss(band1 - band2)
-        if mse == 0:
+        if not mse:
             # If the images are identical, return an infinite PSNR
-            return float('inf')
+            return inf
         
-        MAX_I = MAX_Is[bandType]  # Assumes images are scaled between 0 and 1
+        MAX_I = 1.0 #MAX_Is[bandType]  # Assumes images are scaled between 0 and 1
         psnr_value = 20 * log10(MAX_I / sqrt(mse))
         
         return psnr_value.item()

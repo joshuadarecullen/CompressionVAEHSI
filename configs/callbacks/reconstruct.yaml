@@ -1,0 +1,4 @@
+reconstruct:
+  _target_: src.callbacks.reconstructor.Reconstructor
+  reconstruct_step: 50
+  perc_recon: 0.25

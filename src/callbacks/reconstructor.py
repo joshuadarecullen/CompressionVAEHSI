@@ -22,7 +22,7 @@ class Reconstructor(Callback):
         A callback to reconstruct the output of the VAE
         '''
 
-        self.reconstruct_step = reconstruct_step # how often we recreate training reconstructions
+        self.reconstruct_step = reconstruct_step # how often training reconstructions recreated
         self.perc_recon = perc_recon # amount of reconstructions to produce per batch
 
 
@@ -35,7 +35,7 @@ class Reconstructor(Callback):
 
         # recreate every 40 global steps
         if trainer.global_step % self.reconstruct_step == 0:
-            # this import here stopped the psutil error, and tkinker error of image not bein gin main thread
+            # this import here stopped the psutil error, and tkinker error of image not being in main thread
             from matplotlib import pyplot as plt
             for fig in self.generate_figures(trainer, outputs):
                 pl_module.logger.experiment.log({"train/image": wandb.Image(fig) })
@@ -117,12 +117,14 @@ class Reconstructor(Callback):
             # set a title
             suptitle = ", ".join(self.get_label_names(y, trainer))
             fig.suptitle(suptitle, wrap=True)
-            plt.show()
+
+            yield fig
+            # plt.show()
 
             # return fig
 
     def correct_img(self, img):
-        img = self.normalise(img)
+        # img = self.normalise(img)
         img = np.moveaxis(img, 0, 2) # C, W, H > W, H, C
         img = img[:,:,::-1] # BGR to RGB
         return img

@@ -38,8 +38,6 @@ from src.utils import (
     task_wrapper,
 )
 
-from src.data.kfoldloop import KFoldLoop
-
 log = RankedLogger(__name__, rank_zero_only=True)
 
 '''
@@ -86,7 +84,32 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     log.info("Instantiating loggers...")
     logger: List[Logger] = instantiate_loggers(cfg.get("logger"))
 
-    # log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
+
+
+    if cfg.get("train"):
+        log.info("Starting training!")
+        datamodule.setup_folds(cfg.get("num_folds"))
+        # store the original state of the 1st generated model for continuity across the folds
+        lightning_module_state_dict = deepcopy(model.state_dict())
+        current_fold=0
+
+        # for current_fold in range(cfg.get("num_folds")):
+        log.info(f"Current fold {current_fold}")
+        datamodule.setup_fold_index(current_fold)
+        model.load_state_dict(lightning_module_state_dict)
+
+        #TODO update the checkpoint exportpath in model checkpoint to include fold
+        # export_path = cfg.get("callbacks")['model_checkpoint']['dirpath']
+
+        log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
+        trainer: Trainer = hydra.utils.instantiate(cfg.trainer, callbacks=callbacks, logger=logger)
+
+        trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
+        train_metrics = trainer.callback_metrics
+
+            # trainer.save_checkpoint(osp.join(export_path, f"model.{self.current_fold}.pt"))
+
+        # checkpoint_paths = [osp.join(self.export_path, f"model.{f_idx + 1}.pt") for f_idx in range(cfg.get("folds"))]
 
     object_dict = {
         "cfg": cfg,
@@ -100,28 +123,6 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     if logger:
         log.info("Logging hyperparameters!")
         log_hyperparameters(object_dict)
-
-    if cfg.get("train"):
-        log.info("Starting training!")
-        datamodule.setup_folds(cfg.get("num_folds"))
-        # store the original state of the 1st generated model for continuity across the folds
-        lightning_module_state_dict = deepcopy(model.state_dict())
-
-        for current_fold in range(cfg.get("num_folds")):
-            log.info(f"Current fold {current_fold}")
-            datamodule.setup_fold_index(current_fold)
-            model.load_state_dict(lightning_module_state_dict)
-
-            #TODO update the checkpoint exportpath in model checkpoint to include fold
-            # export_path = cfg.get("callbacks")['model_checkpoint']['dirpath']
-
-            trainer: Trainer = hydra.utils.instantiate(cfg.trainer, callbacks=callbacks, logger=logger)
-            trainer.fit(model=model, datamodule=datamodule, ckpt_path=cfg.get("ckpt_path"))
-            train_metrics = trainer.callback_metrics
-
-            # trainer.save_checkpoint(osp.join(export_path, f"model.{self.current_fold}.pt"))
-
-        checkpoint_paths = [osp.join(self.export_path, f"model.{f_idx + 1}.pt") for f_idx in range(cfg.get("folds"))]
 
     '''
     if cfg.get("test"):

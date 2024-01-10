@@ -1,0 +1,2 @@
+psnr:
+  _target_: src.callbacks.PSNR.PSNR

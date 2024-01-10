@@ -3,4 +3,4 @@ defaults:
 
 accelerator: gpu
 devices: 1
-fast_dev_run: True
+# fast_dev_run: True
