@@ -1,14 +1,10 @@
-from typing import List, Dict, Any, Iterator
-
-import wandb
-import math
+from typing import Dict
 
 from torch import Tensor, log10, sqrt, inf
 import torch.nn.functional as F
-import lightning as L
-from lightning import Callback
+import pytorch_lightning as pl
+from pytorch_lightning import Callback, Trainer, LightningModule
 import numpy as np
-import matplotlib.pyplot as plt
 
 from matplotlib.figure import Figure
 
@@ -25,19 +21,19 @@ class PSNR(Callback):
         """
 
     def on_train_batch_end(self,
-                           trainer: L.Trainer,
-                           pl_module: L.LightningModule,
+                           trainer: Trainer,
+                           pl_module: LightningModule,
                            outputs: Dict[str, Tensor],
                            batch: Dict[str, Tensor],
                            batch_idx: int) -> None:
 
         psnrs = self.generate_loss(outputs)
 
-        pl_module.log("train/band_psnr", psnrs)
+        pl_module.log_dict(psnrs)
 
     def on_validation_batch_end(self,
-                                trainer: L.Trainer,
-                                pl_module: L.LightningModule,
+                                trainer: Trainer,
+                                pl_module: LightningModule,
                                 outputs: Dict[str, Tensor],
                                 batch: Dict[str, Tensor],
                                 batch_idx: int,
@@ -46,11 +42,11 @@ class PSNR(Callback):
         psnrs = self.generate_loss(outputs)
 
 
-        pl_module.log("val/band_psnr", psnrs)
+        pl_module.log_dict(psnrs)
 
     def on_test_batch_end(self,
-                          trainer: L.Trainer,
-                          pl_module: L.LightningModule,
+                          trainer: Trainer,
+                          pl_module: LightningModule,
                           outputs: Dict[str, Tensor],
                           batch: Dict[str, Tensor],
                           batch_idx: int,
@@ -58,21 +54,21 @@ class PSNR(Callback):
 
         psnrs = self.generate_loss(outputs)
 
-        pl_module.log("test/band_psnr", psnrs)
+        pl_module.log_dict(psnrs)
 
     def generate_loss(self,
-                      outputs: Dict[str,Tensor]) -> float:
+                      outputs: Dict[str,Tensor]) -> Dict[str,float]:
         psnrs = []
         for j, (x, recon) in enumerate(zip(outputs['x'], outputs['recon'])):
             band_psnrs = []
 
-            for i, (band1, band2) in enumerate(x, recon):
-                psnr = self.psnr(x_band, reacon_band)#, j, maxs)
+            for i, (x_band, recon_band) in enumerate(zip(x, recon)):
+                psnr = self.psnr(x_band, recon_band)#, j, maxs)
                 band_psnrs.append(psnr)
 
-            psnrs.append(band_psnr)
 
-        psnr_means = np.mean(psnr).mean(axis=0)
+            psnrs.append(band_psnrs)
+        psnr_means = np.mean(np.array(psnrs), axis=0)
         tagged_psnrs = {f'band_{i}': psnr_means[i] for i in range(len(psnr_means))}
 
         return tagged_psnrs
@@ -89,7 +85,7 @@ class PSNR(Callback):
         Returns:
         float: The PSNR value.
         """
-        mse = F.mse_loss(band1 - band2)
+        mse = F.mse_loss(band1, band2)
         if not mse:
             # If the images are identical, return an infinite PSNR
             return inf

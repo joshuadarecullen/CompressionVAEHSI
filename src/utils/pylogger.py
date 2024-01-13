@@ -1,9 +1,29 @@
 import logging
-from typing import Mapping, Optional
 
-from lightning_utilities.core.rank_zero import rank_prefixed_message, rank_zero_only
+#from lightning.pytorch.utilities import rank_zero_only
+from pytorch_lightning.utilities import rank_zero_only
+
+def get_pylogger(name=__name__) -> logging.Logger:
+    """Initializes multi-GPU-friendly python command line logger."""
+
+    logger = logging.getLogger(name)
+
+    # this ensures all logging levels get marked with the rank zero decorator
+    # otherwise logs would get multiplied for each GPU process in multi-GPU setup
+    logging_levels = ("debug", "info", "warning", "error", "exception", "fatal", "critical")
+    for level in logging_levels:
+        setattr(logger, level, rank_zero_only(getattr(logger, level)))
+
+    return logger
+
+# import logging
+# from typing import Mapping, Optional
+
+# from lightning_utilities.core.rank_zero import rank_prefixed_message, rank_zero_only
+# from pytorch_lightning.utilities import rank_zero_only
 
 
+'''
 class RankedLogger(logging.LoggerAdapter):
     """A multi-GPU-friendly python command line logger."""
 
@@ -49,3 +69,17 @@ class RankedLogger(logging.LoggerAdapter):
                     self.logger.log(level, msg, *args, **kwargs)
                 elif current_rank == rank:
                     self.logger.log(level, msg, *args, **kwargs)
+
+def get_pylogger(name=__name__) -> logging.Logger:
+    """Initializes multi-GPU-friendly python command line logger."""
+
+    logger = logging.getLogger(name)
+
+    # this ensures all logging levels get marked with the rank zero decorator
+    # otherwise logs would get multiplied for each GPU process in multi-GPU setup
+    logging_levels = ("debug", "info", "warning", "error", "exception", "fatal", "critical")
+    for level in logging_levels:
+        setattr(logger, level, rank_zero_only(getattr(logger, level)))
+
+    return logger
+'''

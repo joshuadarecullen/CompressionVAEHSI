@@ -3,8 +3,10 @@ from typing import Any, Dict, Optional, Tuple, AnyStr, List, Callable
 import torch
 from torch.utils.data import ConcatDataset, DataLoader, Dataset, random_split, Subset
 from torch import Tensor
-from torchvision.transforms import transforms
+# from torchvision.transforms import transforms as Transform
 from sklearn.model_selection import KFold
+import kornia.augmentation as K
+from torchgeo.transforms import AugmentationSequential
 
 from torchgeo.datamodules.bigearthnet import BigEarthNetDataModule
 
@@ -30,6 +32,11 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
         train_val_test_split: Tuple[float, float, float] = (0.6, 0.2, 0.2),
         transforms: Optional[Callable[[Dict[str, Tensor]], Dict[str, Tensor]]] = None,
     ):
+        super().__init__(root_dir=dataset_dir,
+                         batch_size=batch_size,
+                         num_workers=num_workers)
+
+
         """Validates the hyperparameter config dictionary and sets up internal attributes."""
         self.save_hyperparameters(logger=False)
 
@@ -38,18 +45,19 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
         self.num_workers = num_workers
         self.bands = bands
         self.train_split, self.valid_split, self.test_split = train_val_test_split
+        self.norm_transforms = AugmentationSequential(K.Normalize(mean=self.mean, std=self.std), data_keys=['image'])
         self.transforms = transforms
 
         label_decoder: Dict[int, List[str]] = None
         label_converter: Dict[int,int] = None
 
-        train_dataset: Optional[Dataset] = None
-        test_dataset: Optional[Dataset] = None
+        self.train_dataset: Optional[Dataset] = None
+        self.test_dataset: Optional[Dataset] = None
 
         train_fold: Optional[Dataset] = None
         val_fold: Optional[Dataset] = None
 
-        super().__init__(batch_size=batch_size, num_workers=num_workers)
+
 
     @property
     def num_classes(self) -> int:
@@ -137,9 +145,16 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
             num_workers=self.num_workers,
         )
 
+    '''
+    def on_before_batch_transfer(self, batch, dataloader_idx):
+        # batch = {'image': batch['image'].squeeze(1), 'label': batch['label']}
+        batch = self.norm_transforms(batch)
+        # batch['x'] = transforms(batch['x'])
+        return batch
+
     def on_after_batch_transfer(
-         self, batch: dict[str, Tensor], dataloader_idx: int
-     ) -> dict[str, Tensor]:
+         self, batch: Dict[str, Tensor], dataloader_idx: int
+     ) -> Dict[str, Tensor]:
         """Apply batch augmentations to the batch after it is transferred to the device.
 
          Args:
@@ -159,10 +174,13 @@ class BigEarthDataModule(BigEarthNetDataModule, BaseKFoldDataModule):
             elif self.trainer.predicting:
                 split = "predict"
 
-            aug = self._valid_attribute(f"{split}_aug", "aug")
-            batch = self.aug(aug(batch))
+            # aug = self._valid_attribute(f"{split}_aug", "aug")
+            # batch = aug(batch)
+            batch = {'image': batch['image'].squeeze(1), 'label': batch['label']}
+            batch = self.transforms(batch)
 
         return batch
+    '''
 
 
     def setup_folds(self, num_folds: int) -> None:

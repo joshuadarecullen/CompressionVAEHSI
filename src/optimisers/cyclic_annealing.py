@@ -50,7 +50,7 @@ class CyclicAnnealing(nn.Module):
 
 class CyclicBatchAnnealer(nn.Module):
     def __init__(self,
-                 cycle_length: int = 20*151,
+                 cycle_length: int = 60*151,
                  max_value: float = 1.0, 
                  warmup_batches: int = 4*152) -> None:
         """
@@ -66,7 +66,7 @@ class CyclicBatchAnnealer(nn.Module):
         self.max_value = max_value
         self.warmup_batches = warmup_batches
         self.current_step = 0
-        self.scale = 0.0
+        self.scale = 0.1
 
     def forward(self) -> float:
 

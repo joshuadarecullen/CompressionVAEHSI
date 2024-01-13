@@ -46,22 +46,22 @@ class VAE(nn.Module):
             uncertainty: Tensor,
             beta: float) -> Dict:
 
+        # print(beta)
 
         # sum the loss components, taking batchwise mean
         log_likelihood = self.likelihood(x, recon, uncertainty).mean(axis=0)
         kl_divergence = self.kl_divergence(mu, logvar).mean(axis=0)
         real_loss = log_likelihood + kl_divergence
 
-        sam_loss = sam_loss(x, recon)
-
-        loss = log_likelihood + (kl_divergence * beta) + sam_loss
+        Sloss = sam_loss(x, recon)
+        loss = log_likelihood + (kl_divergence * beta) #+ Sloss
 
         # return a dict of loss tensors
         return {"loss": loss,
                 "real_loss": real_loss,
                 "log_likelihood": log_likelihood,
-                "kl_divergence": kl_divergence,
-                "sam_loss": sam_loss}
+                "kl_divergence": kl_divergence}
+                # "sam_loss": Sloss}
 
     def likelihood(self,
                      x: torch.Tensor,

@@ -4,8 +4,10 @@ import torch
 from torch import nn, Tensor
 from torch.optim import lr_scheduler, Optimizer
 
-import lightning as l
-from lightning import LightningModule
+# import lightning as l
+# from lightning import LightningModule
+import pytorch_lightning as pl
+from pytorch_lightning import LightningModule
 
 import numpy as np
 # import numpy.typing as npt
@@ -59,12 +61,16 @@ class VAEModule(LightningModule):
         # pass through the model outputs shape [batch_size,14,120,120]
         mu, logvar, z, recon, uncertainty = self.model(x)
         # reconstructed, uncertainty = self.model.decode(z)
+        logvar = torch.zeros_like(logvar)
 
         if self.kl_scheduler:
             # Compute beta for cyclic annealing
             beta = self.kl_scheduler.scale
         else:
             beta = 1.0
+
+        if self.trainer.global_step < 5000:
+            uncertainty = torch.zeros_like(recon)
 
         # compute the reconstruction loss
         loss = self.model.loss_func(
@@ -107,7 +113,7 @@ class VAEModule(LightningModule):
                        "train/real_loss": outputs["real_loss"].item(),
                        "train/log_likelihood_of_data": -outputs["log_likelihood"].item(),
                        "train/kl_divergence": outputs["kl_divergence"].item(),
-                       "train/sam_loss": outputs["sam_loss"].item(),
+                       # "train/sam_loss": outputs["sam_loss"].item(),
                        "train/beta_kl_divergence": outputs["beta-kl"]})
 
 
@@ -131,7 +137,7 @@ class VAEModule(LightningModule):
         self.log_dict({"val/loss": outputs["loss"].item(),
                        "val/real_loss": outputs["real_loss"].item(),
                        "val/log_likelihood_of_data": -outputs["log_likelihood"].item(),
-                       "test/sam_loss": outputs["sam_loss"].item(),
+                       # "test/sam_loss": outputs["sam_loss"].item(),
                        "val/kl_divergence": outputs["kl_divergence"].item()})
 
 
@@ -153,7 +159,7 @@ class VAEModule(LightningModule):
         self.log_dict({"test/loss": outputs["loss"].item(),
                        "test/real_loss": outputs["real_loss"].item(),
                        "test/log_likelihood_of_data": -outputs["log_likelihood"].item(),
-                       "test/sam_loss": outputs["sam_loss"].item(),
+                       # "test/sam_loss": outputs["sam_loss"].item(),
                        "test/kl_divergence": outputs["kl_divergence"].item() })
 
     def predict_step(self,

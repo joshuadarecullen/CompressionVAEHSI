@@ -4,10 +4,18 @@ import hydra
 import rootutils
 from copy import deepcopy
 
+'''
 import lightning as L
 import torch
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
+'''
+
+
+import pytorch_lightning as pl
+import torch
+from pytorch_lightning import Callback, LightningDataModule, LightningModule, Trainer
+from pytorch_lightning.loggers import Logger
 from omegaconf import DictConfig
 
 rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
@@ -28,17 +36,21 @@ rootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 # more info: https://github.com/ashleve/rootutils
 # ------------------------------------------------------------------------------------ #
 
-from src.utils import (
-    RankedLogger,
-    extras,
-    get_metric_value,
-    instantiate_callbacks,
-    instantiate_loggers,
-    log_hyperparameters,
-    task_wrapper,
-)
+from src import utils
 
-log = RankedLogger(__name__, rank_zero_only=True)
+# from src.utils import (
+#     # RankedLogger,
+#     get_pylogger,
+#     extras,
+#     get_metric_value,
+#     instantiate_callbacks,
+#     instantiate_loggers,
+#     log_hyperparameters,
+#     task_wrapper,
+# )
+
+# log = RankedLogger(__name__, rank_zero_only=True)
+log = utils.get_pylogger(__name__)
 
 '''
 The `EnsembleVotingModel` will take our custom LightningModule and
@@ -56,7 +68,7 @@ class EnsembleVotingModel(LightningModule):
         loss = F.cross_entropy(logits, batch[1])
         self.log("test_loss", loss)
 
-@task_wrapper
+@utils.task_wrapper
 def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Trains the model. Can additionally evaluate on a testset, using best weights obtained during
     training.
@@ -79,10 +91,10 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     model: LightningModule = hydra.utils.instantiate(cfg.model)
 
     log.info("Instantiating callbacks...")
-    callbacks: List[Callback] = instantiate_callbacks(cfg.get("callbacks"))
+    callbacks: List[Callback] = utils.instantiate_callbacks(cfg.get("callbacks"))
 
     log.info("Instantiating loggers...")
-    logger: List[Logger] = instantiate_loggers(cfg.get("logger"))
+    logger: List[Logger] = utils.instantiate_loggers(cfg.get("logger"))
 
 
 
@@ -122,7 +134,7 @@ def train(cfg: DictConfig) -> Tuple[Dict[str, Any], Dict[str, Any]]:
 
     if logger:
         log.info("Logging hyperparameters!")
-        log_hyperparameters(object_dict)
+        utils.log_hyperparameters(object_dict)
 
     '''
     if cfg.get("test"):
@@ -154,13 +166,13 @@ def main(cfg: DictConfig) -> Optional[float]:
     """
     # apply extra utilities
     # (e.g. ask for tags if none are provided in cfg, print cfg tree, etc.)
-    extras(cfg)
+    utils.extras(cfg)
 
     # train the model
     metric_dict, _ = train(cfg)
 
     # safely retrieve metric value for hydra-based hyperparameter optimization
-    metric_value = get_metric_value(
+    metric_value = utils.get_metric_value(
         metric_dict=metric_dict, metric_name=cfg.get("optimized_metric")
     )
 
