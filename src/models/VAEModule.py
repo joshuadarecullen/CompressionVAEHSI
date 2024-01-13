@@ -113,7 +113,6 @@ class VAEModule(LightningModule):
                        "train/real_loss": outputs["real_loss"].item(),
                        "train/log_likelihood_of_data": -outputs["log_likelihood"].item(),
                        "train/kl_divergence": outputs["kl_divergence"].item(),
-                       # "train/sam_loss": outputs["sam_loss"].item(),
                        "train/beta_kl_divergence": outputs["beta-kl"]})
 
 
@@ -137,7 +136,6 @@ class VAEModule(LightningModule):
         self.log_dict({"val/loss": outputs["loss"].item(),
                        "val/real_loss": outputs["real_loss"].item(),
                        "val/log_likelihood_of_data": -outputs["log_likelihood"].item(),
-                       # "test/sam_loss": outputs["sam_loss"].item(),
                        "val/kl_divergence": outputs["kl_divergence"].item()})
 
 
@@ -159,7 +157,6 @@ class VAEModule(LightningModule):
         self.log_dict({"test/loss": outputs["loss"].item(),
                        "test/real_loss": outputs["real_loss"].item(),
                        "test/log_likelihood_of_data": -outputs["log_likelihood"].item(),
-                       # "test/sam_loss": outputs["sam_loss"].item(),
                        "test/kl_divergence": outputs["kl_divergence"].item() })
 
     def predict_step(self,
@@ -167,9 +164,8 @@ class VAEModule(LightningModule):
                      batch_idx: int,
                      dataloader_idx: int) -> Dict[Any, Dict[str, np.ndarray]]:
 
-        # split = 'train' if dataloader_idx == 0 else 'val'
-
         x, y = batch.values()
+
         # pass through the model
         output = self.model_step(x)
 

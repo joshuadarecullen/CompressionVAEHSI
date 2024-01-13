@@ -31,18 +31,18 @@ class PSNR(Callback):
 
         pl_module.log_dict(psnrs)
 
-    def on_validation_batch_end(self,
-                                trainer: Trainer,
-                                pl_module: LightningModule,
-                                outputs: Dict[str, Tensor],
-                                batch: Dict[str, Tensor],
-                                batch_idx: int,
-                                ) -> None:
+    # def on_validation_batch_end(self,
+    #                             trainer: Trainer,
+    #                             pl_module: LightningModule,
+    #                             outputs: Dict[str, Tensor],
+    #                             batch: Dict[str, Tensor],
+    #                             batch_idx: int,
+    #                             ) -> None:
 
-        psnrs = self.generate_loss(outputs)
+    #     psnrs = self.generate_loss(outputs)
 
 
-        pl_module.log_dict(psnrs)
+    #     pl_module.log_dict(psnrs)
 
     def on_test_batch_end(self,
                           trainer: Trainer,

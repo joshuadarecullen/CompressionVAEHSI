@@ -67,6 +67,12 @@ class Reconstructor(Callback):
 
         self.val_steps += 1
 
+    def on_test_epoch_start(self,
+                             trainer: pl.Trainer,
+                             pl_module: pl.LightningModule,
+                             ) -> None:
+        self.test_steps = 0
+
     def on_test_batch_end(self,
                           trainer: Trainer,
                           pl_module: LightningModule,
@@ -75,10 +81,13 @@ class Reconstructor(Callback):
                           batch_idx: int,
                           ) -> None:
 
-        from matplotlib import pyplot as plt
-        for fig in self.generate_figures(trainer ,outputs):
-            pl_module.logger.experiment.log({"test/image": wandb.Image(fig) })
-            plt.close(fig)
+        if self.test_steps % self.reconstruct_step == 0:
+            from matplotlib import pyplot as plt
+            for fig in self.generate_figures(trainer ,outputs):
+                pl_module.logger.experiment.log({"test/image": wandb.Image(fig) })
+                plt.close(fig)
+
+        self.test_steps += 1
 
 
     def generate_figures(self,
