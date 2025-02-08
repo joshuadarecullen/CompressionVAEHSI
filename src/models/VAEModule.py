@@ -15,7 +15,8 @@ pyrootutils.setup_root(__file__, indicator=".project-root", pythonpath=True)
 class VAEModule(LightningModule):
 
     """
-        LightningModule for Ecoacoustic VAE, the model has to be passed in only with optimiser and scheduler.
+        LightningModule for HSI VAE, the model has to be passed in only with
+        optimiser and scheduler.
     """
     def __init__(
             self,
@@ -65,19 +66,7 @@ class VAEModule(LightningModule):
         else:
             beta = 1.0
 
-        # compute the reconstruction loss
-        # loss = self.model.loss_func(
-        #         x,
-        #         x_hat,
-        #         mean,
-        #         logvar,
-        #         x_log_var,
-        #         beta
-        #         )
-
-        return {#**loss,
-                # 'beta-kl': beta*loss['kl_divergence'].item(),
-                'recon': recon.detach(),
+        return {'recon': recon.detach(),
                 'x': x.detach(),
                 'z': z.detach(),
                 'uncertainty': uncertainty.detach()}
